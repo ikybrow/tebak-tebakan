@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Tebak-Tebakan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #fbc2eb, #a6c1ee);
+      text-align: center;
+      padding: 40px;
+    }
+    h1 {
+      color: #333;
+    }
+    select, input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 6px;
+    }
+    .hidden {
+      display: none;
+    }
+    .score, .timer {
+      font-size: 18px;
+      margin: 10px;
+    }
+    .question {
+      font-size: 22px;
+      margin: 30px 0;
+    }
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .floating-contact {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      background: #ffffffcc;
+      color: #333;
+      border: 1px solid #999;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+    .floating-contact a {
+      color: #075e54;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Game Tebak-Tebakan</h1>
+
+  <div id="start-menu">
+    <label for="difficulty">Pilih Tingkat Kesulitan:</label><br />
+    <select id="difficulty">
+      <option value="easy">Mudah</option>
+      <option value="medium">Sedang</option>
+      <option value="hard">Sulit</option>
+    </select>
+    <br />
+    <button onclick="startGame()">Mulai</button>
+  </div>
+
+  <div id="game-area" class="hidden">
+    <div class="score">Skor: <span id="score">0</span></div>
+    <div class="timer">Waktu: <span id="timer">30</span> detik</div>
+    <div class="question" id="question">Memuat pertanyaan...</div>
+    <input type="text" id="answer" placeholder="Tulis jawabanmu di sini" />
+    <br />
+    <button onclick="checkAnswer()">Tebak!</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- Kontak pembuat dengan link WhatsApp -->
+  <div class="floating-contact">
+    Dibuat oleh: <a href="https://wa.me/6282141903060" target="_blank">contact developer</a>
+  </div>
+
+  <script>
+    const questions = {
+      easy: [
+        { question: "Apa warna bendera Indonesia?", answer: "Merah dan Putih" },
+        { question: "Berapa hasil dari 2 + 2?", answer: "4" },
+        { question: "Apa ibu kota Indonesia?", answer: "Jakarta" },
+        { question: "Hari setelah Senin?", answer: "Selasa" },
+        { question: "Buah berwarna merah dan kecil, rasanya manis?", answer: "Stroberi" },
+        { question: "Apa nama hewan yang bersuara 'meong'?", answer: "Kucing" },
+        { question: "Alat untuk menulis di papan tulis?", answer: "Spidol" },
+        { question: "Benda yang digunakan untuk melihat waktu?", answer: "Jam" },
+        { question: "Lawan kata dari besar?", answer: "Kecil" },
+        { question: "Angka setelah 9?", answer: "10" }
+      ],
+      medium: [
+        { question: "Siapa presiden pertama Indonesia?", answer: "Soekarno" },
+        { question: "Bulan ke-12 dalam kalender?", answer: "Desember" },
+        { question: "Planet terdekat dari matahari?", answer: "Merkurius" },
+        { question: "Alat musik tradisional dari Jawa Barat?", answer: "Angklung" },
+        { question: "Bahasa resmi negara Jepang?", answer: "Jepang" },
+        { question: "Binatang laut berkaki delapan?", answer: "Gurita" },
+        { question: "Siapa penulis 'Laskar Pelangi'?", answer: "Andrea Hirata" },
+        { question: "Berapa jumlah pulau di Indonesia (perkiraan)?", answer: "17000" },
+        { question: "Ibukota Jawa Timur?", answer: "Surabaya" },
+        { question: "Warna campuran dari biru dan kuning?", answer: "Hijau" }
+      ],
+      hard: [
+        { question: "Apa kepanjangan dari HTML?", answer: "HyperText Markup Language" },
+        { question: "Siapa penemu lampu pijar?", answer: "Thomas Edison" },
+        { question: "Ibu kota negara Kazakhstan?", answer: "Astana" },
+        { question: "Tahun proklamasi kemerdekaan Indonesia?", answer: "1945" },
+        { question: "Siapa penulis 'Origin of Species'?", answer: "Charles Darwin" },
+        { question: "Apa nama unsur kimia dengan simbol Au?", answer: "Emas" },
+        { question: "Hewan yang mampu tidur selama musim dingin?", answer: "Beruang" },
+        { question: "Bahasa pemrograman yang digunakan untuk web dinamis di sisi klien?", answer: "JavaScript" },
+        { question: "Apa nama galaksi tempat bumi berada?", answer: "Bima Sakti" },
+        { question: "Berapakah jumlah provinsi di Indonesia (2024)?", answer: "38" }
+      ]
+    };
+
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let timeLeft = 30;
+    let timer;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function startGame() {
+      const difficulty = document.getElementById("difficulty").value;
+      currentQuestions = [...questions[difficulty]];
+      shuffle(currentQuestions);
+      document.getElementById("start-menu").classList.add("hidden");
+      document.getElementById("game-area").classList.remove("hidden");
+      currentIndex = 0;
+      score = 0;
+      document.getElementById("score").textContent = score;
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 30;
+      document.getElementById("timer").textContent = timeLeft;
+
+      if (currentIndex >= currentQuestions.length) {
+        document.getElementById("question").textContent = "Permainan selesai!";
+        document.getElementById("result").textContent = "Skor akhir kamu: " + score;
+        document.getElementById("answer").disabled = true;
+        document.querySelector("button").disabled = true;
+        return;
+      }
+
+      document.getElementById("question").textContent = currentQuestions[currentIndex].question;
+      document.getElementById("answer").value = "";
+      document.getElementById("result").textContent = "";
+
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          document.getElementById("result").textContent = "Waktu habis!";
+          currentIndex++;
+          setTimeout(loadQuestion, 1500);
+        }
+      }, 1000);
+    }
+
+    function checkAnswer() {
+      const userAnswer = document.getElementById("answer").value.trim().toLowerCase();
+      const correctAnswer = currentQuestions[currentIndex].answer.toLowerCase();
+
+      clearInterval(timer);
+
+      if (userAnswer === correctAnswer) {
+        score++;
+        document.getElementById("score").textContent = score;
+        document.getElementById("result").textContent = "Benar!";
+        document.getElementById("result").style.color = "green";
+      } else {
+        document.getElementById("result").textContent = "Salah! Jawaban benar: " + currentQuestions[currentIndex].answer;
+        document.getElementById("result").style.color = "red";
+      }
+
+      currentIndex++;
+      setTimeout(loadQuestion, 1500);
+    }
+  </script>
+
+</body>
+</html>
